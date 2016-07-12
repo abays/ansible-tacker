@@ -1,0 +1,16 @@
+---
+
+tacker_base_repo: https://github.com/openstack/tacker
+tacker_branch: stable/mitaka
+tacker_client_repo: https://github.com/openstack/python-tackerclient
+tacker_horizon_repo: https://github.com/openstack/tacker-horizon
+
+tacker_admin_password: welcome
+tacker_nova_password: welcome
+tacker_overcloudrc: /root/overcloudrc
+tacker_password: welcome
+tacker_port: 8888
+tacker_project_name: admin
+tacker_region: regionOne
+tacker_vim_config: vim_config.yaml
+tacker_vim_name: VIM0

@@ -1,0 +1,45 @@
+[DEFAULT]
+debug = True
+lock_path = $state_path/lock
+service_plugins = vnfm,nfvo
+notification_driver = tacker.openstack.common.notifier.rpc_notifier
+
+[agent]
+
+[keystone_authtoken]
+signing_dir = /var/cache/tacker
+cafile = /opt/stack/data/ca-bundle.pem
+project_domain_id = default
+project_name = {{ tacker_project_name }}
+user_domain_id = default
+password = {{ tacker_password }} 
+username = tacker
+auth_url = http://{{ controller_ip }}:35357
+auth_plugin = password
+identity_uri = http://{{ controller_ip }}:5000
+auth_uri = http://{{ controller_ip }}:5000
+
+[database]
+connection = mysql://tacker:{{ tacker_password }}@{{ controller_ip }}:3306/tacker
+
+[tacker]
+
+[nfvo_vim]
+default_vim = {{ tacker_vim_name }}
+
+[vim_keys]
+
+[tacker_nova]
+region_name = {{ tacker_region_name }}
+project_domain_id = default
+project_name = {{ tacker_project_name }}
+user_domain_id = default
+password = {{ tacker_nova_password }}
+username = nova
+auth_url = http://{{ controller_ip }}:35357
+auth_plugin = password
+
+[tacker_heat]
+heat_uri = http://{{ controller_ip }}:8004/v1
+stack_retries = 60
+stack_retry_wait = 5
