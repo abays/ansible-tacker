@@ -1,0 +1,21 @@
+---
+- name: add rhos-release latest repo
+  yum_repository:
+    name: rhos-release-latest
+    description: RHOS latest release
+    baseurl: http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm
+
+- name: add rhos-release GA 8-director repo
+  command: rhos-release -p GA 8-director
+
+- name: add rhos-release GA 8 repo
+  command: rhos-release -p GA 8
+
+- name: switch to /tmp directory
+  command: cd /tmp
+
+- name: download epel 7 repo
+  command: wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+- name: add epel 7 repo
+  command: yum install -y epel-release-latest-7.noarch.rpm

@@ -1,0 +1,5 @@
+---
+- include: install_repos.yml
+- include: install_tacker_base.yml
+- include: install_tacker_client.yml
+- include: install_tacker_horizon.yml
