@@ -14,13 +14,13 @@ project_name = {{ tacker_project_name }}
 user_domain_id = default
 password = {{ tacker_password }} 
 username = tacker
-auth_url = http://{{ controller_ip }}:35357
+auth_url = http://{{ controller_ip.stdout }}:35357
 auth_plugin = password
-identity_uri = http://{{ controller_ip }}:5000
-auth_uri = http://{{ controller_ip }}:5000
+identity_uri = http://{{ controller_ip.stdout }}:5000
+auth_uri = http://{{ controller_ip.stdout }}:5000
 
 [database]
-connection = mysql://tacker:{{ tacker_password }}@{{ controller_ip }}:3306/tacker
+connection = mysql://tacker:{{ tacker_password }}@{{ controller_ip.stdout }}:3306/tacker
 
 [tacker]
 
@@ -30,16 +30,16 @@ default_vim = {{ tacker_vim_name }}
 [vim_keys]
 
 [tacker_nova]
-region_name = {{ tacker_region_name }}
+region_name = {{ tacker_region }}
 project_domain_id = default
 project_name = {{ tacker_project_name }}
 user_domain_id = default
 password = {{ tacker_nova_password }}
 username = nova
-auth_url = http://{{ controller_ip }}:35357
+auth_url = http://{{ controller_ip.stdout }}:35357
 auth_plugin = password
 
 [tacker_heat]
-heat_uri = http://{{ controller_ip }}:8004/v1
+heat_uri = http://{{ controller_ip.stdout }}:8004/v1
 stack_retries = 60
 stack_retry_wait = 5

@@ -6,27 +6,20 @@
    - python-pip
 
 - name: ensure Neutron uses port_security extension driver
-  lineinfile: dest=/etc/neutron/plugins/ml2/ml2_conf.ini regexp=^extension_drivers\s*= line='extension_drivers = port_security'
+  lineinfile: dest=/etc/neutron/plugins/ml2/ml2_conf.ini regexp='^extension_drivers\s*=' line='extension_drivers = port_security' state=present
   register: neutron_conf
 
 - name: restart Neutron server
   command: pcs resource restart neutron-server
   when: neutron_conf.changed
 
-- name: ensure Heat policy stuff
-  lineinfile: dest=/etc/heat/policy.json regexp=^\"resource_types:OS::Nova::Flavor\":\s*\" line='"resource_types:OS::Nova::Flavor": "role:admin"'
-  register: heat_policy
-
-- name: restart Heat engine
-  command: pcs resource restart heat-engine
-  when: heat_policy.changed
-
 - name: create Tacker database
-  command: >
-    mysql --execute "CREATE DATABASE tacker"
+  command: mysql --execute "CREATE DATABASE tacker"
+  register: tacker_database
+  failed_when: tacker_database.stderr != '' and 'database exists' not in tacker_database.stderr
 
 - name: set Tacker database permissions
-  command: >
+  shell: >
     mysql --execute "GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'localhost' IDENTIFIED BY '{{ tacker_password }}'; 
     GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'%' IDENTIFIED BY '{{ tacker_password }}'"
 
@@ -34,22 +27,37 @@
   shell: >
     source {{ tacker_overcloudrc }};
     openstack user create --password {{ tacker_password }} tacker
+  register: tacker_database_user
+  failed_when: tacker_database_user.stderr != '' and 'Duplicate Entry' not in tacker_database_user.stderr
 
 - name: give Tacker user admin role
   shell: >
     source {{ tacker_overcloudrc }};
     openstack role add --project {{ tacker_project_name }} --user tacker admin
-
-- name: create Tacker service
-  shell: >
-    source {{ tacker_overcloudrc }};
-    openstack service create --name tacker --description "Tacker Project" nfv-orchestration
+  register: tacker_database_user_admin_role
+  failed_when: tacker_database_user_admin_role.stderr != '' and 'already has role' not in tacker_database_user_admin_role.stderr
 
 - name: acquire Tacker service ID
   shell: >
     source {{ tacker_overcloudrc }};
     openstack service show tacker | grep "| id" | awk '{print $4}'
   register: tacker_service_id
+
+- name: DEBUG
+  debug: var=tacker_service_id
+
+- name: create Tacker service
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack service create --name tacker --description "Tacker Project" nfv-orchestration
+  when: ('No service with a type' in tacker_service_id.stderr)
+
+- name: acquire Tacker service ID
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack service show tacker | grep "| id" | awk '{print $4}'
+  register: tacker_service_id
+  when: ('No service with a type' in tacker_service_id.stderr)
 
 - name: acquire controller IP
   shell: pcs config | grep -m 1 "start ip-" | awk '{print $2}' | cut -d "-" -f 2
@@ -58,21 +66,22 @@
 - name: create Tacker endpoints
   shell: >
     source {{ tacker_overcloudrc }};
-    openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ controller_ip }}:{{ tacker_port }}/' 
-    --adminurl 'http://{{ controller_ip }}:{{ tacker_port }}/' --internalurl 'http://{{ controller_ip }}:{{ tacker_port }}/' 
-    {{ tacker_service_id }}
+    openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' --adminurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' --internalurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' {{ tacker_service_id.stdout }}
 
 - name: install libffi-devel
   yum: name=libffi-devel state=present
 
+- name: clean /root of any old Tacker code
+  file: name=/root/tacker state=absent force=yes
+
 - name: clone Tacker code
-  git: repo={{ tacker_base_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/
+  git: repo={{ tacker_base_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/tacker
 
 - name: make Tacker conf dir
-  command: mkdir /etc/tacker
+  file: name=/etc/tacker state=directory
 
 - name: make Tacker log dir
-  command: mkdir /var/log/tacker
+  file: name=/var/log/tacker state=directory
 
 - name: copy Tacker conf source, but abandon tacker.conf
   shell: >
@@ -105,7 +114,11 @@
   command: /usr/bin/tacker-db-manage --config-file /etc/tacker/tacker.conf upgrade head
 
 - name: create Tacker systemd service
-  template: src=tacker-server.service dest=/usr/lib/systemd/system/tacker-server.service
+  template: src=tacker-server.service.j2 dest=/usr/lib/systemd/system/tacker-server.service
+
+- name: reload daemons
+  command: systemctl daemon-reload
 
 - name: start Tacker systemd service
-  systemd: state=started enabled=yes daemon_reload=yes name=tacker-server
+  service: state=started enabled=yes name=tacker-server
+

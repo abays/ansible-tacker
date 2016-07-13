@@ -1,21 +1,12 @@
 ---
-- name: add rhos-release latest repo
-  yum_repository:
-    name: rhos-release-latest
-    description: RHOS latest release
-    baseurl: http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm
-
-- name: add rhos-release GA 8-director repo
-  command: rhos-release -p GA 8-director
-
-- name: add rhos-release GA 8 repo
-  command: rhos-release -p GA 8
-
-- name: switch to /tmp directory
-  command: cd /tmp
+- name: add rhos-release latest repos
+  shell: >
+    rpm -ivh http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm && rhos-release -p GA 8-director && rhos-release -p GA 8
+  register: add_rhos_release_repos
+  failed_when: add_rhos_release_repos.stderr != '' and 'is already installed' not in add_rhos_release_repos.stderr
 
 - name: download epel 7 repo
-  command: wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  get_url: url=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm dest=/root/epel-release-latest-7.noarch.rpm
 
 - name: add epel 7 repo
-  command: yum install -y epel-release-latest-7.noarch.rpm
+  yum: name=/root/epel-release-latest-7.noarch.rpm state=installed
