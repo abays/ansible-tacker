@@ -9,9 +9,6 @@
   command: sed -n "/^extension_drivers.*=.*/p" /etc/neutron/plugins/ml2/ml2_conf.ini 
   register: neutron_extension_drivers
 
-- name: DEBUG
-  debug: var=neutron_extension_drivers
-
 - name: ensure Neutron uses port_security extension driver, check 1
   command: sed -ri "s/^extension_drivers.*=.*/&,port_security/" /etc/neutron/plugins/ml2/ml2_conf.ini 
   when: (neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout)
@@ -29,9 +26,6 @@
   command: mysql --execute "CREATE DATABASE tacker"
   register: tacker_database
   failed_when: tacker_database.stderr != '' and 'database exists' not in tacker_database.stderr
-
-- name: DEBUG
-  debug: var=tacker_database
 
 - name: set Tacker database permissions
   shell: >
