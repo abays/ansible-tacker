@@ -5,18 +5,33 @@
    - git
    - python-pip
 
-- name: ensure Neutron uses port_security extension driver
-  lineinfile: dest=/etc/neutron/plugins/ml2/ml2_conf.ini regexp='^extension_drivers\s*=' line='extension_drivers = port_security' state=present
+- name: acquire Neutron extension driver
+  command: sed -n "/^extension_drivers.*=.*/p" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  register: neutron_extension_drivers
+
+- name: DEBUG
+  debug: var=neutron_extension_drivers
+
+- name: ensure Neutron uses port_security extension driver, check 1
+  command: sed -ri "s/^extension_drivers.*=.*/&,port_security/" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  when: (neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout)
+
+- name: ensure Neutron uses port_security extension driver, check 2
+  lineinfile: regexp='' line='extension_drivers = port_security' dest=/etc/neutron/plugins/ml2/ml2_conf.ini
   register: neutron_conf
+  when: (neutron_extension_drivers.stdout == '')
 
 - name: restart Neutron server
   command: pcs resource restart neutron-server
-  when: neutron_conf.changed
+  when: ((neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout) or neutron_conf.changed)
 
 - name: create Tacker database
   command: mysql --execute "CREATE DATABASE tacker"
   register: tacker_database
   failed_when: tacker_database.stderr != '' and 'database exists' not in tacker_database.stderr
+
+- name: DEBUG
+  debug: var=tacker_database
 
 - name: set Tacker database permissions
   shell: >
@@ -37,27 +52,23 @@
   register: tacker_database_user_admin_role
   failed_when: tacker_database_user_admin_role.stderr != '' and 'already has role' not in tacker_database_user_admin_role.stderr
 
-- name: acquire Tacker service ID
+- name: check for Tacker service ID
   shell: >
     source {{ tacker_overcloudrc }};
     openstack service show tacker | grep "| id" | awk '{print $4}'
-  register: tacker_service_id
-
-- name: DEBUG
-  debug: var=tacker_service_id
+  register: tacker_service_id_check
 
 - name: create Tacker service
   shell: >
     source {{ tacker_overcloudrc }};
     openstack service create --name tacker --description "Tacker Project" nfv-orchestration
-  when: ('No service with a type' in tacker_service_id.stderr)
+  when: (tacker_service_id_check.stdout == '')
 
 - name: acquire Tacker service ID
   shell: >
     source {{ tacker_overcloudrc }};
     openstack service show tacker | grep "| id" | awk '{print $4}'
   register: tacker_service_id
-  when: ('No service with a type' in tacker_service_id.stderr)
 
 - name: acquire controller IP
   shell: pcs config | grep -m 1 "start ip-" | awk '{print $2}' | cut -d "-" -f 2
@@ -67,6 +78,7 @@
   shell: >
     source {{ tacker_overcloudrc }};
     openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' --adminurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' --internalurl 'http://{{ controller_ip.stdout }}:{{ tacker_port }}/' {{ tacker_service_id.stdout }}
+  when: (tacker_service_id_check.stdout == '')
 
 - name: install libffi-devel
   yum: name=libffi-devel state=present

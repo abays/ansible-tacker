@@ -1,1 +1,20 @@
 ---
+
+- name: clean /root of any old Tacker Horizon code
+  file: name=/root/tacker-horizon state=absent force=yes
+
+- name: clone Tacker Horizon code
+  git: repo={{ tacker_horizon_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/tacker-horizon
+
+- name: install Tacker Horizon
+  shell: >
+    cd /root/tacker-horizon;
+    python setup.py install
+
+- name: copy Tacker Horizon dashboard extensions to OpenStack
+  shell: >
+    cd /root/tacker-horizon;
+    cp openstack_dashboard_extensions/* /usr/share/openstack-dashboard/openstack_dashboard/enabled/
+
+- name: restart Apache
+  command: pcs resource restart httpd
