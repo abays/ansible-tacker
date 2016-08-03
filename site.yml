@@ -1,9 +1,17 @@
 ---
 # This playbook attempts to install Tacker
 
-- name: install tacker
-  hosts: controllers
+- name: install tacker on primary controller
+  hosts: controller-main
   remote_user: root
 
   roles:
-    - controller
+    - controller-main
+
+- name: install tacker on peer controllers
+  hosts: controller-peer
+  remote_user: root
+
+  roles:
+    - controller-peer
+

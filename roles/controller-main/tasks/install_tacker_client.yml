@@ -1,0 +1,15 @@
+---
+
+- name: clean /root of any old Tacker client code
+  file: name=/root/python-tackerclient state=absent force=yes
+  become: true
+
+- name: clone Tacker client code
+  git: repo={{ tacker_client_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/python-tackerclient
+  become: true
+
+- name: install Tacker client
+  shell: >
+    cd /root/python-tackerclient;
+    python setup.py install
+  become: true

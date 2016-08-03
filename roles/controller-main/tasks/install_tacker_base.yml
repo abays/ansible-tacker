@@ -1,0 +1,208 @@
+---
+- name: install git and pip
+  yum: name={{ item }} state=present
+  with_items:
+   - git
+   - python-pip
+  become: true
+
+- name: acquire Neutron extension driver
+  command: sed -n "/^extension_drivers.*=.*/p" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  register: neutron_extension_drivers
+  become: true
+
+- name: ensure Neutron uses port_security extension driver, check 1
+  command: sed -ri "s/^extension_drivers.*=.*/&,port_security/" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  when: (neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout)
+  become: true
+
+- name: ensure Neutron uses port_security extension driver, check 2
+  lineinfile: regexp='' line='extension_drivers = port_security' dest=/etc/neutron/plugins/ml2/ml2_conf.ini
+  register: neutron_conf
+  when: (neutron_extension_drivers.stdout == '')
+  become: true
+
+- name: restart Neutron server
+  command: pcs resource restart neutron-server
+  when: ((neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout) or neutron_conf.changed)
+  become: true
+
+- name: create Tacker database
+  command: mysql --execute "CREATE DATABASE tacker"
+  register: tacker_database
+  failed_when: tacker_database.stderr != '' and 'database exists' not in tacker_database.stderr
+  become: true
+
+- name: set Tacker database permissions
+  shell: >
+    mysql --execute "GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'localhost' IDENTIFIED BY '{{ tacker_password }}'; 
+    GRANT ALL PRIVILEGES ON tacker.* TO 'tacker'@'%' IDENTIFIED BY '{{ tacker_password }}'"
+  become: true
+
+- name: create Tacker user
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack user create --password {{ tacker_password }} tacker
+  register: tacker_database_user
+  failed_when: tacker_database_user.stderr != '' and 'Duplicate Entry' not in tacker_database_user.stderr
+  become: true
+
+- name: give Tacker user admin role
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack role add --project {{ tacker_project_name }} --user tacker admin
+  register: tacker_database_user_admin_role
+  failed_when: tacker_database_user_admin_role.stderr != '' and 'already has role' not in tacker_database_user_admin_role.stderr
+  become: true
+
+- name: check for Tacker service ID
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack service show tacker | grep "| id" | awk '{print $4}'
+  register: tacker_service_id_check
+  become: true
+
+- name: create Tacker service
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack service create --name tacker --description "Tacker Project" nfv-orchestration
+  when: (tacker_service_id_check.stdout == '')
+  become: true
+
+- name: acquire Tacker service ID
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack service show tacker | grep "| id" | awk '{print $4}'
+  register: tacker_service_id
+  become: true
+
+- name: acquire controller IP
+  shell: pcs config | grep -m 1 "start ip-" | awk '{print $2}' | cut -d "-" -f 2
+  register: controller_ip
+  become: true
+
+- name: acquire admin URL
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep adminurl | awk {'print $4'}
+  register: admin_url
+  become: true
+
+- name: acquire admin IP
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep adminurl | awk {'print $4'} | cut -d "/" -f 3 | cut -d ":" -f 1
+  register: admin_ip
+  become: true
+
+- name: acquire internal URL
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep internalurl | awk {'print $4'}
+  register: internal_url
+  become: true
+
+- name: acquire internal IP
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep internalurl | awk {'print $4'} | cut -d "/" -f 3 | cut -d ":" -f 1
+  register: internal_ip
+  become: true
+
+- name: acquire public URL
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep publicurl | awk {'print $4'}
+  register: public_url
+  become: true
+
+- name: acquire public IP
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show nova | grep publicurl | awk {'print $4'} | cut -d "/" -f 3 | cut -d ":" -f 1
+  register: public_ip
+  become: true
+
+- name: acquire keystone auth IP
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show keystone | grep adminurl | awk {'print $4'} | cut -d "/" -f 3 | cut -d ":" -f 1
+  register: keystone_auth_ip
+  become: true
+
+- name: create Tacker endpoints
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ public_ip.stdout }}:{{ tacker_port }}/' --adminurl 'http://{{ admin_ip.stdout }}:{{ tacker_port }}/' --internalurl 'http://{{ internal_ip.stdout }}:{{ tacker_port }}/' {{ tacker_service_id.stdout }}
+  when: (tacker_service_id_check.stdout == '')
+  become: true
+
+- name: install libffi-devel
+  yum: name=libffi-devel state=present
+  become: true
+
+- name: clean /root of any old Tacker code
+  file: name=/root/tacker state=absent force=yes
+  become: true
+
+- name: clone Tacker code
+  git: repo={{ tacker_base_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/tacker
+  become: true
+
+- name: make Tacker conf dir
+  file: name=/etc/tacker state=directory
+  become: true
+
+- name: make Tacker log dir
+  file: name=/var/log/tacker state=directory
+  become: true
+
+- name: copy Tacker conf source, but abandon tacker.conf
+  shell: >
+    cp -r /root/tacker/etc/tacker/* /etc/tacker/;
+    rm -f /etc/tacker/tacker.conf
+  become: true
+
+- name: create tacker.conf
+  template: src=tacker.conf.j2 dest=/etc/tacker/tacker.conf
+  become: true
+
+- name: install Tacker dependencies
+  shell: >
+    cd /root/tacker;
+    pip install -r requirements.txt
+  become: true
+
+- name: upgrade Python six package
+  command: pip install six --upgrade
+  become: true
+
+- name: install TOSCA parser
+  command: pip install tosca-parser
+  become: true
+
+- name: install Tacker
+  shell: >
+    cd /root/tacker;
+    python setup.py install
+  become: true
+
+- name: create default VIM config
+  template: src=vim_config.yaml.j2 dest=/root/vim_config.yaml
+  become: true
+
+- name: configure Tacker database
+  command: /usr/bin/tacker-db-manage --config-file /etc/tacker/tacker.conf upgrade head
+  become: true
+
+- name: create Tacker systemd service
+  template: src=tacker-server.service.j2 dest=/usr/lib/systemd/system/tacker-server.service
+  become: true
+
+- name: reload daemons
+  command: systemctl daemon-reload
+  become: true
+
+#- name: start Tacker systemd service
+#  service: state=started enabled=yes name=tacker-server
+
