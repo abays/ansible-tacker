@@ -8,12 +8,12 @@
 #  roles:
 #    - controller-main
 
-- name: install tacker on peer controllers
-  hosts: controller-peer
-  remote_user: root
-
-  roles:
-    - controller-peer
+#- name: install tacker on peer controllers
+#  hosts: controller-peer
+#  remote_user: root
+#
+#  roles:
+#    - controller-peer
 
 - name: start tacker on controllers
   hosts: controller-main

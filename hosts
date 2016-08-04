@@ -5,6 +5,10 @@
 192.0.2.7 ansible_user=heat-admin
 192.0.2.11 ansible_user=heat-admin
 
+[controller-start]
+192.0.2.9 ansible_user=heat-admin
+
 [controllers:children]
 controller-main
 controller-peer
+controller-start

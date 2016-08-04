@@ -5,9 +5,9 @@
     mysql --execute "USE tacker; ALTER TABLE vimauths MODIFY password VARCHAR(255) NOT NULL;"
   become: true
 
-#- name: set the default Tacker VIM
-#  shell: >
-#    source {{ tacker_overcloudrc }};
-#    tacker vim-register --config-file /root/vim_config.yaml --name {{ tacker_vim_name }} --description VIM
-#  register: tacker_config_default_vim
-#  failed_when: tacker_config_default_vim.stderr != '' and 'Cannot register duplicate VIM' not in tacker_config_default_vim.stderr 
+- name: set the default Tacker VIM
+  shell: >
+    source {{ tacker_overcloudrc }};
+    tacker vim-register --config-file /root/vim_config.yaml --name {{ tacker_vim_name }} --description VIM
+  register: tacker_config_default_vim
+  failed_when: tacker_config_default_vim.stderr != '' and 'Cannot register duplicate VIM' not in tacker_config_default_vim.stderr 
