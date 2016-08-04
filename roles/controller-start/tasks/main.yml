@@ -2,3 +2,11 @@
 - name: add Tacker server to pacemaker
   command: pcs resource create tacker-server systemd:tacker-server --clone interleave=true
   become: true
+
+- name: set the default Tacker VIM
+  shell: >
+    source {{ tacker_overcloudrc }};
+    tacker vim-register --config-file /root/vim_config.yaml --name {{ tacker_vim_name }} --description VIM
+  register: tacker_config_default_vim
+  failed_when: tacker_config_default_vim.stderr != '' and 'Cannot register duplicate VIM' not in tacker_config_default_vim.stderr
+  become: true
