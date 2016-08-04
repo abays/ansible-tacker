@@ -15,3 +15,9 @@
   roles:
     - controller-peer
 
+- name: start tacker on controllers
+  hosts: controller-main
+  remote_user: root
+
+  roles:
+    - controller-start
