@@ -2,6 +2,20 @@
 - name: add Tacker server to pacemaker
   command: pcs resource create tacker-server systemd:tacker-server --clone interleave=true
   become: true
+  register: pacemaker_tacker_start
+  failed_when: pacemaker_tacker_start.stderr != '' and 'already exists on this system' not in pacemaker_tacker_start.stderr
+
+- name: enable Tacker server in pacemaker
+  command: pcs resource enable tacker-server
+  become: true
+
+- name: wait for Tacker server to start
+  command: systemctl status tacker-server
+  become: true
+  register: tacker_process
+  until: tacker_process.stdout.find("active (running)") > -1
+  retries: 20
+  delay: 3
 
 - name: set the default Tacker VIM
   shell: >
