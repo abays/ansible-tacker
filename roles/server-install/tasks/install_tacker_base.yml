@@ -1,0 +1,47 @@
+---
+- name: install git and pip
+  yum: name={{ item }} state=present
+  with_items:
+   - git
+   - python-pip
+  become: true
+
+- name: install libffi-devel
+  yum: name=libffi-devel state=present
+  become: true
+
+- name: clean /root of any old Tacker code
+  file: name=/root/tacker state=absent force=yes
+  become: true
+
+- name: clone Tacker code
+  git: repo={{ tacker_base_repo }} accept_hostkey=yes version={{ tacker_branch }} dest=/root/tacker
+  become: true
+
+- name: make Tacker conf dir
+  file: name=/etc/tacker state=directory
+  become: true
+
+- name: make Tacker log dir
+  file: name=/var/log/tacker state=directory
+  become: true
+
+- name: install Tacker dependencies
+  shell: >
+    cd /root/tacker;
+    pip install -r requirements.txt
+  become: true
+
+- name: upgrade Python six package
+  command: pip install six --upgrade
+  become: true
+
+- name: install TOSCA parser
+  command: pip install tosca-parser
+  become: true
+
+- name: install Tacker
+  shell: >
+    cd /root/tacker;
+    python setup.py install
+  become: true

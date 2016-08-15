@@ -1,0 +1,27 @@
+---
+- name: install git and pip
+  yum: name={{ item }} state=present
+  with_items:
+   - git
+   - python-pip
+
+- name: acquire Neutron extension driver
+  command: sed -n "/^extension_drivers.*=.*/p" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  register: neutron_extension_drivers
+  become: true
+
+- name: ensure Neutron uses port_security extension driver, check 1
+  command: sed -ri "s/^extension_drivers.*=.*/&,port_security/" /etc/neutron/plugins/ml2/ml2_conf.ini 
+  when: (neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout)
+  become: true
+
+- name: ensure Neutron uses port_security extension driver, check 2
+  lineinfile: regexp='' line='extension_drivers = port_security' dest=/etc/neutron/plugins/ml2/ml2_conf.ini
+  register: neutron_conf
+  when: (neutron_extension_drivers.stdout == '')
+  become: true
+
+- name: restart Neutron server
+  command: pcs resource restart neutron-server
+  when: ((neutron_extension_drivers.stdout != '' and 'port_security' not in neutron_extension_drivers.stdout) or neutron_conf.changed)
+  become: true

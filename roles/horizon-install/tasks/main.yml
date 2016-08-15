@@ -1,6 +1,5 @@
 ---
 - include: install_repos.yml
-- include: install_tacker_base.yml
+- include: configure_neutron.yml
 - include: install_tacker_client.yml
 - include: install_tacker_horizon.yml
-- include: configure_tacker.yml

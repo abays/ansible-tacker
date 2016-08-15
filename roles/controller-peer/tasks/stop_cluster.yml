@@ -1,3 +1,0 @@
----
-- name: stop HA cluster
-  command: pcs cluster stop --all

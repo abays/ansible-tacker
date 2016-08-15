@@ -19,6 +19,3 @@
     cd /root/tacker-horizon;
     cp openstack_dashboard_extensions/* /usr/share/openstack-dashboard/openstack_dashboard/enabled/
   become: true
-
-#- name: restart Apache
-#  command: pcs resource restart httpd

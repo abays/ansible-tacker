@@ -1,0 +1,21 @@
+---
+- name: check for rhos-release repos
+  command: rpm -qa | grep rhos-release
+  become: true
+  register: rhos_release_repos
+
+- name: add rhos-release latest repos
+  shell: >
+    rpm -ivh http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm && rhos-release -p GA 8-director && rhos-release -p GA 8
+  become: true
+  register: add_rhos_release_repos
+  failed_when: add_rhos_release_repos.stderr != '' and 'is already installed' not in add_rhos_release_repos.stderr
+  when: (rhos_release_repos.stdout == '')
+
+- name: download epel 7 repo
+  get_url: url=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm dest=/root/epel-release-latest-7.noarch.rpm
+  become: true
+
+- name: add epel 7 repo
+  yum: name=/root/epel-release-latest-7.noarch.rpm state=installed
+  become: true

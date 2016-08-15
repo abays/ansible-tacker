@@ -1,23 +1,37 @@
 ---
 # This playbook attempts to install Tacker
 
-- name: install tacker on primary controller
-  hosts: controller-main
+- name: install tacker on target server 
+  hosts: tacker-server
   remote_user: root
 
   roles:
-    - controller-main
+    - server-install
 
-- name: install tacker on peer controllers
-  hosts: controller-peer
+- name: install tacker database
+  hosts: database
   remote_user: root
 
   roles:
-    - controller-peer
+    -  database-install
 
-- name: start tacker on controllers
-  hosts: controller-main
+- name: install horizon plugin on controllers
+  hosts: controller
   remote_user: root
 
   roles:
-    - controller-start
+    - horizon-install
+
+- name: configure tacker database
+  host: database
+  remote_user: root
+
+  roles:
+    - database-configure
+
+- name: configure and start tacker server
+  host: tacker-server
+  remote-user: root
+
+  roles:
+    - server-configure
