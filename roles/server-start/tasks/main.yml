@@ -1,0 +1,21 @@
+---
+- name: create default VIM config
+  template: src=vim_config.yaml.j2 dest=/root/vim_config.yaml
+
+- name: create Tacker systemd service
+  template: src=tacker-server.service.j2 dest=/usr/lib/systemd/system/tacker-server.service
+
+- name: reload daemons
+  command: systemctl daemon-reload
+
+- name: start Tacker systemd service
+  service: state=started enabled=yes name=tacker-server
+
+- name: set the default Tacker VIM
+  shell: >
+    source {{ tacker_overcloudrc }};
+    tacker vim-register --config-file /root/vim_config.yaml --name {{ tacker_vim_name }} --description VIM
+  register: tacker_config_default_vim
+  failed_when: tacker_config_default_vim.stderr != '' and 'Cannot register duplicate VIM' not in tacker_config_default_vim.stderr
+  become: true
+

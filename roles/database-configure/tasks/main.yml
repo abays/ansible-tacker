@@ -1,5 +1,4 @@
 ---
-
 - name: increase length of Tacker VIM password field
   shell: >
     mysql --execute "USE tacker; ALTER TABLE vimauths MODIFY password VARCHAR(255) NOT NULL;"

@@ -49,7 +49,9 @@
   become: true
 
 - name: acquire controller IP
-  shell: pcs config | grep -m 1 "start ip-" | awk '{print $2}' | cut -d "-" -f 2
+  shell: >
+    source {{ tacker_overcloudrc }};
+    openstack endpoint show heat | grep publicurl | awk '{print $4}' | cut -d ":" -f 2 | cut -d "/" -f 3
   register: controller_ip
   become: true
 
@@ -105,6 +107,6 @@
 - name: create Tacker endpoints
   shell: >
     source {{ tacker_overcloudrc }};
-    openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ public_ip.stdout }}:{{ tacker_port }}/' --adminurl 'http://{{ admin_ip.stdout }}:{{ tacker_port }}/' --internalurl 'http://{{ internal_ip.stdout }}:{{ tacker_port }}/' {{ tacker_service_id.stdout }}
+    openstack endpoint create --region {{ tacker_region }} --publicurl 'http://{{ hostvars[groups['tacker-server'][0]]['ansible_eth0']['ipv4']['address'] }}:{{ tacker_port }}/' --adminurl 'http://{{ hostvars[groups['tacker-server'][0]]['ansible_eth0']['ipv4']['address'] }}:{{ tacker_port }}/' --internalurl 'http://{{ hostvars[groups['tacker-server'][0]]['ansible_eth0']['ipv4']['address'] }}:{{ tacker_port }}/' {{ tacker_service_id.stdout }}
   when: (tacker_service_id_check.stdout == '')
   become: true

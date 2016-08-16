@@ -1,4 +1,4 @@
-auth_url: http://{{ hostvars[groups['database'][0]]['controller_ip']['stdout'] }}:5000
+auth_url: http://{{ hostvars[groups['database'][0]]['internal_ip']['stdout'] }}:5000
 username: admin
 password: {{ tacker_admin_password }}
 project_name: {{ tacker_project_name }}

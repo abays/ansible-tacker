@@ -10,28 +10,35 @@
 
 - name: install tacker database
   hosts: database
-  remote_user: root
+  remote_user: stack
 
   roles:
     -  database-install
 
 - name: install horizon plugin on controllers
   hosts: controller
-  remote_user: root
+  remote_user: stack
 
   roles:
     - horizon-install
 
-- name: configure tacker database
-  host: database
+- name: configure tacker server
+  hosts: tacker-server
   remote_user: root
+
+  roles:
+    - server-configure
+
+- name: configure tacker database
+  hosts: database
+  remote_user: stack
 
   roles:
     - database-configure
 
-- name: configure and start tacker server
-  host: tacker-server
-  remote-user: root
+- name: start tacker server
+  hosts: tacker-server
+  remote_user: root
 
   roles:
-    - server-configure
+    - server-start

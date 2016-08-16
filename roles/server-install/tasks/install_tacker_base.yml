@@ -1,13 +1,24 @@
 ---
-- name: install git and pip
+- name: install dependencies 
   yum: name={{ item }} state=present
   with_items:
    - git
    - python-pip
+   - gcc
+   - python-devel
+   - openssl-devel
   become: true
 
 - name: install libffi-devel
   yum: name=libffi-devel state=present
+  become: true
+
+- name: install pymysql
+  command: pip install pymysql
+  become: true
+
+- name: install Keystone middleware
+  command: pip install keystonemiddleware
   become: true
 
 - name: clean /root of any old Tacker code
@@ -25,6 +36,11 @@
 - name: make Tacker log dir
   file: name=/var/log/tacker state=directory
   become: true
+
+- name: copy Tacker conf source, but abandon tacker.conf
+  shell: >
+    cp -r /root/tacker/etc/tacker/* /etc/tacker/;
+    rm -f /etc/tacker/tacker.conf
 
 - name: install Tacker dependencies
   shell: >
