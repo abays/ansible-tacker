@@ -1,5 +1,6 @@
 ---
 - include: install_repos.yml
+  when: ({{ skip_repo_install }) == false)
 - include: configure_neutron.yml
 - include: install_tacker_client.yml
 - include: install_tacker_horizon.yml
