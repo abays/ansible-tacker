@@ -1,3 +1,4 @@
 ---
 - include: install_repos.yml
+  when: ({{ skip_repo_install }} == false)
 - include: install_tacker_database.yml
