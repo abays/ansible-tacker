@@ -1,4 +1,5 @@
 ---
 - include: install_repos.yml
+  when: ({{ skip_repo_install }} == false)
 - include: install_tacker_base.yml
 - include: install_tacker_client.yml
