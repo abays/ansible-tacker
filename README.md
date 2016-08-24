@@ -1,6 +1,6 @@
 # ansible-tacker
 
-This Ansible playbook was quickly created to install Tacker on an overcloud's controller nodes.  It was designed and tested against nodes running RHEL 7.2 / OSP 8.  The current version assumes you have access to internal Red Hat repositories (that is, subscriptions will do you no good).
+This Ansible playbook was quickly created to install Tacker on an overcloud's controller nodes.  It was designed and tested against nodes running RHEL 7.2 / OSP 8.  ***If you are not using Red Hat internal repos, make sure to pass "skip_repo_install=true" when running the playbook.***
 
 *** This branch is designed to support installing Tacker within an HA context ***
 
