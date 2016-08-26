@@ -1,6 +1,6 @@
 # ansible-tacker
 
-This Ansible playbook was quickly created to install Tacker on an overcloud controller node.  It was designed and tested against a node running RHEL 7.2 / OSP 8.  ***If you are not using Red Hat internal repos, make sure to pass "skip_repo_install=true" when running the playbook.***
+This Ansible playbook was quickly created to install Tacker on an overcloud controller node.  It was designed and tested against a node running RHEL 7.2 / OSP 8.  ***If you are not using Red Hat internal repos, make sure to pass "skip_repo_install=true" when running the playbook.*** *Please note that opting out of these repos will require you to properly configure the appropriate repos on the target host before running this playbook.*
 
 1. Run this playbook from your undercloud.
 2. Make sure your overcloud node has an rc file available, and then set the appropriate group_var in the Ansible configuration.
