@@ -7,7 +7,7 @@ This Ansible playbook was quickly created to install Tacker on a node ***outside
 3. This script assumes Neutron server is installed on the controller nodes.
 4. You will need to pass two extra parameters when running the playbook: tacker_admin_password and tacker_nova_password.  These are your admin and nova passwords, respectively.  The playbook command would look something like so:
    ansible-playbook -i hosts site.yml -e tacker_admin_password=XXX -e tacker_nova_password=XXX
-5. Even though this is designed for HA-protected overcloud controller nodes, this script can still be used on a TripleO deployment containing only one controller.  Simply put that one host in the host's "[controller]" section.
+5. Even though this is designed for HA-protected overcloud controller nodes, this script can still be used on a TripleO deployment containing only one controller.  Simply put that one host in the host file's "[controller]" section.
 6. The "[tacker-server]" section of the hosts file should contain the target host upon which to install Tacker.  Typically -- at least in a TripleO environment -- the "[database]" section of the host file should contain one and only one of the overcloud's controllers (assuming Galera is replicating the database across the cluster).
 
 In closing, I'm a total Ansible n00b.  This was my first attempt at learning it, so don't expect too much. ;-)
